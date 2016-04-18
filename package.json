@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "async": "^2.0.0-rc.3",
+    "randomstring": "^1.1.4",
     "shelljs": "^0.6.0",
     "web-bundle": "^1.1.4"
   },
