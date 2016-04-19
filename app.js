@@ -82,10 +82,36 @@ var Backup = function Backup(input, output, prefix) {
                     });
                 });
             }, function (err, res) {
-                if (err) console.log(err);
+                if (err) throw err;
                 cb(null, null);
             });
         });
+    };
+
+    this.to_archives = function (input, output, cb) {
+        _this.check_dir(output, function () {
+            _fs2.default.readdir(input, function (err, files) {
+                if (err) throw err;
+                _async2.default.each(files, function (file, callback) {
+                    var inp = __dirname + "/" + input + "/" + file;
+                    var out = (__dirname + "/" + output + "/" + file).split('.png')[0];
+                    _this.decode(inp, out, function () {
+                        callback(null);
+                    });
+                }, function (err, res) {
+                    if (err) throw err;
+                    cb();
+                });
+            });
+        });
+    };
+
+    this.check_dir = function (dirname, cb) {
+        if (!_fs2.default.existsSync(dirname)) {
+            _fs2.default.mkdir(dirname, function () {
+                cb();
+            });
+        }
     };
 
     // async.series([
@@ -124,8 +150,12 @@ var Backup = function Backup(input, output, prefix) {
 };
 
 var backup = new Backup('to_backup', 'new', "archived");
-backup.split_and_compress(10, "ciccio", function () {
-    backup.to_images(function () {
-        console.log('done');
-    });
+// backup.split_and_compress(10, "ciccio", () => {
+//     backup.to_images(() => {
+//         console.log('done');
+//     });
+
+// });
+backup.to_archives('new', 'extracted', function () {
+    console.log('extracted');
 });

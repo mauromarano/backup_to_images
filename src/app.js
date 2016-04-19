@@ -27,7 +27,6 @@ class Backup {
             });
         }
 
-
         this.encode = (input, output, cb) => {
             let command = `node node_modules/web-bundle/tool/wb.js encode ${input} -o ${output}`
             child_process.exec(command, (err, stdout, stderr) => {
@@ -43,6 +42,10 @@ class Backup {
             });
         }
 
+        // Takes the file contained inside the global var input
+        // split them into file of <size> MB and compress them
+        // if you set this.compression=9 it will be ultra compressed
+        // if you this.compression=0 means no compression at all
         this.split_and_compress = (size, password, cb) => {
 
             child_process.exec(`7z a -v${size}m -mx=${this.compression} -p${password} ${this.output}/${this.prefix}.7z ${this.input}`, (err, stdout, stderr) => {
@@ -53,6 +56,9 @@ class Backup {
         }
 
 
+        // Takes all the files inside the global var output
+        // iterates each file inside the encode function
+        // once a file is encoded it deletes the origin 7zip file
         this.to_images = (cb) => {
             fs.readdir(`${this.output}/`, (err, files) => {
 
@@ -60,16 +66,45 @@ class Backup {
                     let input = `${__dirname}/${this.output}/${file}`;
                     let output = `${input}.png`;
                     this.encode(input, output, () => {
-                        child_process.exec(`rm ${input}`, (code,stdin,stdout) => {
+                        child_process.exec(`rm ${input}`, (code, stdin, stdout) => {
                             callback(null, null);
                         });
                     });
 
                 }, (err, res) => {
-                    if (err) console.log(err);
+                    if (err) throw err;
                     cb(null, null);
                 });
             });
+        }
+
+        // Sames as to_image but reversed
+        this.to_archives = (input, output, cb) => {
+            this.check_dir(output, () => {
+                fs.readdir(input, (err, files) => {
+                    if (err) throw err;
+                    async.each(files, (file, callback) => {
+                        let inp = `${__dirname}/${input}/${file}`;
+                        let out = `${__dirname}/${output}/${file}`.split('.png')[0];
+                        this.decode(inp, out, () => {
+                            callback(null);
+                        });
+                    }, (err, res) => {
+                        if (err) throw err;
+                        cb();
+                    });
+
+                });
+            });
+        }
+
+        // Check if a dir exists, if not it creates it
+        this.check_dir = (dirname, cb) => {
+            if (!fs.existsSync(dirname)) {
+                fs.mkdir(dirname, () => {
+                    cb();
+                });
+            }
         }
 
         // async.series([
@@ -109,9 +144,12 @@ class Backup {
 }
 
 let backup = new Backup('to_backup', 'new', "archived");
-backup.split_and_compress(10, "ciccio", () => {
-    backup.to_images(() => {
-        console.log('done');
-    });
+// backup.split_and_compress(10, "ciccio", () => {
+//     backup.to_images(() => {
+//         console.log('done');
+//     });
 
+// });
+backup.to_archives('new', 'extracted', () => {
+    console.log('extracted');
 });
