@@ -16,6 +16,10 @@ var _randomstring = require("randomstring");
 
 var _randomstring2 = _interopRequireDefault(_randomstring);
 
+var _fs = require("fs");
+
+var _fs2 = _interopRequireDefault(_fs);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -54,11 +58,8 @@ var Backup = function Backup() {
     };
 
     this.split_and_compress = function (size, password, folder_name, archive_name, cb) {
-        console.log("<==============================>\nThe size of each block will be " + size + "MB\nYou password is " + password + "\nThe name of the archive is " + archive_name + "\nThe file you want to compress and split is " + folder_name + "\n            ");
-        _this.ask('Please press enter to continue', function (err, res) {
-            _shelljs2.default.exec("7z a -v" + size + "m -mx=9 -p" + password + " " + archive_name + ".7z " + folder_name, function () {
-                cb();
-            });
+        _shelljs2.default.exec("7z a -v" + size + "m -mx=0 -p" + password + " " + archive_name + ".7z " + folder_name, function () {
+            cb();
         });
     };
 
@@ -98,8 +99,16 @@ var Backup = function Backup() {
 };
 
 var backup = new Backup();
-backup.split_and_compress(1, "ciccio", "to_backup", "archived", function () {
-    console.log('Done');
+backup.split_and_compress(10, "ciccio", "to_backup", "new/archived", function () {
+    _fs2.default.readdir('new/', function (err, files) {
+        _async2.default.each(files, function (file, cb) {
+            var input = __dirname + "/new/" + file;
+            var output = input + ".png";
+            backup.encode(input, output, function () {
+                cb();
+            });
+        }, function (err, res) {});
+    });
 });
 // backup.encode('doc.ods.zip','immagine.png');
 // backup.decode('immagine.png', 'doc2.ods.zip', function() {

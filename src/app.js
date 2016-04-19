@@ -2,6 +2,7 @@ import async from "async"
 import shell from "shelljs"
 import readline from "readline"
 import randomstring from "randomstring"
+import fs from "fs"
 
 class Backup {
     constructor() {
@@ -40,7 +41,7 @@ class Backup {
         }
 
         this.split_and_compress = (size, password, folder_name, archive_name, cb) => {
-            shell.exec(`7z a -v${size}m -mx=9 -p${password} ${archive_name}.7z ${folder_name}`, () => {
+            shell.exec(`7z a -v${size}m -mx=0 -p${password} ${archive_name}.7z ${folder_name}`, () => {
                 cb();
             });
 
@@ -83,8 +84,20 @@ class Backup {
 }
 
 let backup = new Backup();
-backup.split_and_compress(1, "ciccio", "to_backup", "archived", () => {
-    console.log('Done');
+backup.split_and_compress(10, "ciccio", "to_backup", "new/archived", () => {
+    fs.readdir('new/',(err,files)=>{
+        async.each(files,(file,cb)=>{
+            let input = `${__dirname}/new/${file}`;
+            let output = `${input}.png`;
+            backup.encode(input,output,()=>{
+                cb();
+            });
+
+        },
+            (err,res)=>{
+
+            });
+    });
 });
 // backup.encode('doc.ods.zip','immagine.png');
 // backup.decode('immagine.png', 'doc2.ods.zip', function() {
