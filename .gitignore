@@ -1,2 +1,5 @@
 node_modules
 .DS_Store
+to_backup
+*.zip
+*.7z

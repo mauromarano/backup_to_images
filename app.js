@@ -53,38 +53,54 @@ var Backup = function Backup() {
         };
     };
 
-    _async2.default.series([function (cb) {
-        _this.ask("Type in the size (MB) of each block: ", function (err, res) {
-            cb(null, res);
-        });
-    }, function (cb) {
-        _this.ask("Type in your password: ", function (err, res) {
-            cb(null, res);
-        });
-    }, function (cb) {
-        _this.ask("How would you like to name the archive: ", function (err, res) {
-            cb(null, res);
-        });
-    }, function (cb) {
-        _this.ask("Type in the name of the folder you want to split and compress: ", function (err, res) {
-            cb(null, res);
-        });
-    }], function (err, res) {
-        var size = res[0] * 1024;
-        var password = res[1];
-        var archive_name = res[2];
-        var folder_name = res[3];
-        console.log("<==============================>\nThe size of each block will be " + size + "KB\nYou password is " + password + "\nThe name of the archive is " + archive_name + "\nThe file you want to compress and split is " + folder_name + "\n            ");
-
+    this.split_and_compress = function (size, password, folder_name, archive_name, cb) {
+        console.log("<==============================>\nThe size of each block will be " + size + "MB\nYou password is " + password + "\nThe name of the archive is " + archive_name + "\nThe file you want to compress and split is " + folder_name + "\n            ");
         _this.ask('Please press enter to continue', function (err, res) {
-            _shelljs2.default.exec("rar a -v" + size + "k -df -hp" + password + " -m0 " + archive_name + ".rar " + folder_name, function () {
-                console.log('done');
+            _shelljs2.default.exec("7z a -v" + size + "m -mx=9 -p" + password + " " + archive_name + ".7z " + folder_name, function () {
+                cb();
             });
         });
-    });
+    };
+
+    // async.series([
+    //     (cb) => {
+    //         this.ask("Type in the size (MB) of each block: ", (err, res) => {
+    //             cb(null, res);
+    //         });
+    //     }, (cb) => {
+    //         this.ask("Type in your password: ", (err, res) => {
+    //             cb(null, res);
+    //         });
+    //     }, (cb) => {
+    //         this.ask("How would you like to name the archive: ", (err, res) => {
+    //             cb(null, res);
+    //         });
+    //     }, (cb) => {
+    //         this.ask("Type in the name of the folder you want to split and compress: ", (err, res) => {
+    //             cb(null, res);
+    //         });
+    //     }
+
+    // ], (err, res)=> {
+    //     let size = res[0]*1024;
+    //     let password = res[1];
+    //     let archive_name = res[2];
+    //     let folder_name = res[3];
+    //     console.log(`<==============================>\nThe size of each block will be ${size}KB\nYou password is ${password}\nThe name of the archive is ${archive_name}\nThe file you want to compress and split is ${folder_name}
+    //     `);
+
+    //     this.ask('Please press enter to continue',(err,res)=>{
+    //         shell.exec(`rar a -v${size}k -df -hp${password} -m0 ${archive_name}.rar ${folder_name}`,()=>{
+    //             console.log('done');
+    //         });
+    //     });
+    // });
 };
 
 var backup = new Backup();
+backup.split_and_compress(1, "ciccio", "to_backup", "archived", function () {
+    console.log('Done');
+});
 // backup.encode('doc.ods.zip','immagine.png');
 // backup.decode('immagine.png', 'doc2.ods.zip', function() {
 //     console.log('done');
