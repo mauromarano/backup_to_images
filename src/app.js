@@ -1,20 +1,22 @@
 import async from "async"
-import shell from "shelljs"
 import readline from "readline"
 import randomstring from "randomstring"
 import fs from "fs"
+import child_process from "child_process"
 
 class Backup {
-    constructor() {
+    constructor(input, output, prefix) {
 
         // VARIABLES
-        const self = this;
+        this.input = input;
+        this.output = output;
+        this.prefix = prefix;
+        this.compression = 0;
 
 
 
         // FUNCTIONS
         this.ask = (question, cb) => {
-            const self = this;
             const rl = readline.createInterface({
                 input: process.stdin,
                 output: process.stdout
@@ -27,24 +29,47 @@ class Backup {
 
 
         this.encode = (input, output, cb) => {
-            shell.exec(`node node_modules/web-bundle/tool/wb.js encode ${input} -o ${output} `),
-            function() {
+            let command = `node node_modules/web-bundle/tool/wb.js encode ${input} -o ${output}`
+            child_process.exec(command, (err, stdout, stderr) => {
+                if (err) throw err;
                 cb();
-            };
+            });
         }
 
         this.decode = (input, output, cb) => {
-            shell.exec(`node node_modules/web-bundle/tool/wb.js decode ${input} -o ${output} `),
-            function() {
+            child_process.exec(`node node_modules/web-bundle/tool/wb.js decode ${input} -o ${output} `, (err, stdout, stderr) => {
+                if (err) throw err;
                 cb();
-            };
+            });
         }
 
-        this.split_and_compress = (size, password, folder_name, archive_name, cb) => {
-            shell.exec(`7z a -v${size}m -mx=0 -p${password} ${archive_name}.7z ${folder_name}`, () => {
+        this.split_and_compress = (size, password, cb) => {
+
+            child_process.exec(`7z a -v${size}m -mx=${this.compression} -p${password} ${this.output}/${this.prefix}.7z ${this.input}`, (err, stdout, stderr) => {
+                if (err) throw err;
                 cb();
             });
 
+        }
+
+
+        this.to_images = (cb) => {
+            fs.readdir(`${this.output}/`, (err, files) => {
+
+                async.each(files, (file, callback) => {
+                    let input = `${__dirname}/${this.output}/${file}`;
+                    let output = `${input}.png`;
+                    this.encode(input, output, () => {
+                        child_process.exec(`rm ${input}`, (code,stdin,stdout) => {
+                            callback(null, null);
+                        });
+                    });
+
+                }, (err, res) => {
+                    if (err) console.log(err);
+                    cb(null, null);
+                });
+            });
         }
 
         // async.series([
@@ -83,23 +108,10 @@ class Backup {
     }
 }
 
-let backup = new Backup();
-backup.split_and_compress(10, "ciccio", "to_backup", "new/archived", () => {
-    fs.readdir('new/',(err,files)=>{
-        async.each(files,(file,cb)=>{
-            let input = `${__dirname}/new/${file}`;
-            let output = `${input}.png`;
-            backup.encode(input,output,()=>{
-                cb();
-            });
-
-        },
-            (err,res)=>{
-
-            });
+let backup = new Backup('to_backup', 'new', "archived");
+backup.split_and_compress(10, "ciccio", () => {
+    backup.to_images(() => {
+        console.log('done');
     });
+
 });
-// backup.encode('doc.ods.zip','immagine.png');
-// backup.decode('immagine.png', 'doc2.ods.zip', function() {
-//     console.log('done');
-// });

@@ -4,10 +4,6 @@ var _async = require("async");
 
 var _async2 = _interopRequireDefault(_async);
 
-var _shelljs = require("shelljs");
-
-var _shelljs2 = _interopRequireDefault(_shelljs);
-
 var _readline = require("readline");
 
 var _readline2 = _interopRequireDefault(_readline);
@@ -20,21 +16,27 @@ var _fs = require("fs");
 
 var _fs2 = _interopRequireDefault(_fs);
 
+var _child_process = require("child_process");
+
+var _child_process2 = _interopRequireDefault(_child_process);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Backup = function Backup() {
+var Backup = function Backup(input, output, prefix) {
     var _this = this;
 
     _classCallCheck(this, Backup);
 
     // VARIABLES
-    var self = this;
+    this.input = input;
+    this.output = output;
+    this.prefix = prefix;
+    this.compression = 0;
 
     // FUNCTIONS
     this.ask = function (question, cb) {
-        var self = _this;
         var rl = _readline2.default.createInterface({
             input: process.stdin,
             output: process.stdout
@@ -46,20 +48,43 @@ var Backup = function Backup() {
     };
 
     this.encode = function (input, output, cb) {
-        _shelljs2.default.exec("node node_modules/web-bundle/tool/wb.js encode " + input + " -o " + output + " "), function () {
+        var command = "node node_modules/web-bundle/tool/wb.js encode " + input + " -o " + output;
+        _child_process2.default.exec(command, function (err, stdout, stderr) {
+            if (err) throw err;
             cb();
-        };
+        });
     };
 
     this.decode = function (input, output, cb) {
-        _shelljs2.default.exec("node node_modules/web-bundle/tool/wb.js decode " + input + " -o " + output + " "), function () {
+        _child_process2.default.exec("node node_modules/web-bundle/tool/wb.js decode " + input + " -o " + output + " ", function (err, stdout, stderr) {
+            if (err) throw err;
             cb();
-        };
+        });
     };
 
-    this.split_and_compress = function (size, password, folder_name, archive_name, cb) {
-        _shelljs2.default.exec("7z a -v" + size + "m -mx=0 -p" + password + " " + archive_name + ".7z " + folder_name, function () {
+    this.split_and_compress = function (size, password, cb) {
+
+        _child_process2.default.exec("7z a -v" + size + "m -mx=" + _this.compression + " -p" + password + " " + _this.output + "/" + _this.prefix + ".7z " + _this.input, function (err, stdout, stderr) {
+            if (err) throw err;
             cb();
+        });
+    };
+
+    this.to_images = function (cb) {
+        _fs2.default.readdir(_this.output + "/", function (err, files) {
+
+            _async2.default.each(files, function (file, callback) {
+                var input = __dirname + "/" + _this.output + "/" + file;
+                var output = input + ".png";
+                _this.encode(input, output, function () {
+                    _child_process2.default.exec("rm " + input, function (code, stdin, stdout) {
+                        callback(null, null);
+                    });
+                });
+            }, function (err, res) {
+                if (err) console.log(err);
+                cb(null, null);
+            });
         });
     };
 
@@ -98,19 +123,9 @@ var Backup = function Backup() {
     // });
 };
 
-var backup = new Backup();
-backup.split_and_compress(10, "ciccio", "to_backup", "new/archived", function () {
-    _fs2.default.readdir('new/', function (err, files) {
-        _async2.default.each(files, function (file, cb) {
-            var input = __dirname + "/new/" + file;
-            var output = input + ".png";
-            backup.encode(input, output, function () {
-                cb();
-            });
-        }, function (err, res) {});
+var backup = new Backup('to_backup', 'new', "archived");
+backup.split_and_compress(10, "ciccio", function () {
+    backup.to_images(function () {
+        console.log('done');
     });
 });
-// backup.encode('doc.ods.zip','immagine.png');
-// backup.decode('immagine.png', 'doc2.ods.zip', function() {
-//     console.log('done');
-// });
